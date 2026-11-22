@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
 from content import CIALDINI, SITT, CASES, FREQUENCIES, MODELS
+from activities import render_dialogues, render_debate, render_export, _field, _lab_state
 
 st.set_page_config(page_title="Global Social Processes | Influence Lab", page_icon="🌍", layout="wide")
 st.markdown('''<style>
@@ -28,7 +29,7 @@ def note(p,e):st.markdown('<div class="note">'+L(p,e)+'</div>',unsafe_allow_html
 def title(p,e):st.subheader(L(p,e))
 def h(p,e):st.markdown('#### '+L(p,e))
 
-SECTIONS=[('start','Wprowadzenie','Start'),('cialdini','6 zasad Cialdiniego','Cialdini: 6 principles'),('sitt','Taksonomia SITT: 9 kategorii','SITT: 9 categories'),('code','Kodowanie dialogów','Code the dialogues'),('rewrite','Eksperyment z komunikatem','Message experiment'),('global','Globalne procesy społeczne','Global social processes'),('data','Co pokazują dane SITT?','Explore SITT findings'),('models','Czy AI rozpoznaje wpływ?','Can AI detect influence?'),('debate','Dyskusje teoretyczne','Theory and debate'),('final','Projekt badawczy','Research design challenge')]
+SECTIONS=[('start','Wprowadzenie','Start'),('cialdini','6 zasad Cialdiniego','Cialdini: 6 principles'),('sitt','Taksonomia SITT: 9 kategorii','SITT: 9 categories'),('code','Kodowanie dialogów','Code the dialogues'),('dialogues','Dłuższe dialogi: analiza perswazji','Long dialogues: persuasion analysis'),('rewrite','Eksperyment z komunikatem','Message experiment'),('global','Globalne procesy społeczne','Global social processes'),('data','Co pokazują dane SITT?','Explore SITT findings'),('models','Czy AI rozpoznaje wpływ?','Can AI detect influence?'),('debate','Dyskusje teoretyczne','Theory and debate'),('final','Projekt badawczy','Research design challenge')]
 chosen=st.sidebar.radio(L('Wybierz część laboratorium','Choose a lab section'),[x[0] for x in SECTIONS],format_func=lambda k:next((x[1] if pl else x[2]) for x in SECTIONS if x[0]==k))
 st.sidebar.caption(L('Bez kont, bez Google Sheets i bez przesyłania odpowiedzi na serwer.','No account, no Google Sheets, no answer submission.'))
 st.markdown('<div class="hero"><div style="font-size:.8rem;letter-spacing:2px">INTRODUCTION TO GLOBAL SOCIAL PROCESSES</div><h1>'+L('Wpływ społeczny, perswazja i manipulacja','Social Influence, Persuasion and Manipulation')+'</h1><p>'+L('Interaktywne laboratorium teoretyczne oparte na artykule Unraveling SITT','An interactive theory lab based on the paper Unraveling SITT')+'</p></div>',unsafe_allow_html=True)
@@ -71,6 +72,9 @@ elif chosen=='sitt':
     h('SITT a sześć zasad Cialdiniego','SITT versus Cialdini')
     st.write(L('Przykład: niedostępność to zasada Cialdiniego, ale w SITT technika „Unavailability” przypisana jest do kategorii „Context modification”. Oznacza to, że podobne idee mogą należeć do różnych systemów klasyfikacji.','Example: scarcity is a Cialdini principle; in SITT, the “Unavailability” technique belongs to “Context modification”. Similar ideas can be classified differently across taxonomies.'))
 
+elif chosen=='dialogues':
+    render_dialogues(pl, CIALDINI, SITT)
+
 elif chosen=='code':
     title('Pracownia kodowania: wybierz dowody w tekście','Coding studio: identify the evidence in a message')
     note('Klucz kodowy określa <b>definicje, kryteria włączenia i wyłączenia oraz zasady rozstrzygania sporów</b>. Tu porównujesz ocenę z pomocniczym kluczem autorskich przykładów, nie z oryginalnymi etykietami SITT.','A codebook provides <b>definitions, inclusion/exclusion criteria and disagreement rules</b>. Here you compare against a teaching key for new examples, not original SITT annotations.')
@@ -81,6 +85,8 @@ elif chosen=='code':
     st.markdown('### '+(c[3] if pl else c[4]))
     selections=st.multiselect(L('Wskaż możliwe kategorie SITT (0, 1 lub kilka)','Select SITT categories (zero, one or several)'),[x[0] for x in SITT],format_func=catname,key='codes')
     evidence=st.text_area(L('Które słowa są dowodem? Jak wyjaśnisz swoją decyzję?','Which words are evidence? How would you justify your decision?'),height=85,key='evidence')
+    _lab_state()[f'case_{c[0]}_labels']=selections
+    _lab_state()[f'case_{c[0]}_evidence']=evidence
     no_context=st.checkbox(L('Zbyt mało kontekstu, aby rozstrzygnąć intencję nadawcy','Insufficient context to judge the speaker’s intentions'),value=False,key='c_uncertain')
     if st.button(L('Pokaż interpretację przykładową','Show an example interpretation')):
         correct=set(c[5]); selected=set(selections)
@@ -112,7 +118,7 @@ elif chosen=='rewrite':
     c1.markdown('**'+L('Komunikat neutralny','Neutral message')+'**');c1.info(base)
     c2.markdown('**'+L('Komunikat zmieniony','Modified message')+'**');c2.success(changed)
     st.caption(L('Wszystkie komunikaty są fikcyjne; nie mierzymy tutaj rzeczywistej skuteczności perswazji.','All messages are invented; persuasion effectiveness is not measured here.'))
-    st.text_area(L('Co zmieniło się w mechanizmie wpływu? Co należałoby zbadać empirycznie?','What influence mechanism changed? What would need empirical testing?'),height=115)
+    _field('experiment_interpretation',L('Co zmieniło się w mechanizmie wpływu? Co należałoby zbadać empirycznie?','What influence mechanism changed? What would need empirical testing?'),height=115)
     with st.expander(L('Wskazówka interpretacyjna','Interpretation hint')):
         st.write(L('Zaobserwuj różnicę w odwołaniu do norm, autorytetu, emocji, ograniczonej dostępności lub wzajemności. Bez eksperymentu nie znamy skutku dla zachowania.','Notice the appeal to norms, expertise, emotion, scarcity or reciprocity. Without an experiment we cannot know its behavioural effect.'))
 
@@ -131,7 +137,7 @@ elif chosen=='global':
     theme=st.selectbox(L('Temat badawczy','Research theme'),range(len(choices)),format_func=lambda i:choices[i][1] if pl else choices[i][2])
     st.info(choices[theme][3] if pl else choices[theme][4])
     st.write(L('Rozróżnij: nadawcę, kanał, odbiorców, kontekst instytucjonalny i możliwe konsekwencje.','Distinguish the sender, channel, audiences, institutional context and possible consequences.'))
-    st.text_area(L('Napisz hipotezę, możliwe zmienne i ograniczenia','Write a hypothesis, possible variables and limitations'),height=160)
+    _field('global_hypothesis',L('Napisz hipotezę, możliwe zmienne i ograniczenia','Write a hypothesis, possible variables and limitations'),height=160)
     with st.expander(L('Co jest trudne metodologicznie?','What is methodologically difficult?')):
         st.write(L('Rozpowszechnienie komunikatu nie oznacza automatycznie zmiany postaw. Selekcja odbiorców, tłumaczenie, instytucje i algorytmy mogą zmieniać zarówno ekspozycję, jak i interpretację.','Message circulation does not automatically mean attitude change. Audience selection, translation, institutions and algorithms can alter exposure and interpretation.'))
 
@@ -147,7 +153,7 @@ elif chosen=='data':
     st.metric(L('Udział w 746 dialogach (możliwe nakładanie etykiet)','Share of 746 dialogues (labels overlap)'),f'{100*count/746:.1f}%')
     h('Co można wywnioskować?','What can we conclude?')
     st.write(L('Najwięcej tekstów oznaczono odwołaniem do emocji. Nie oznacza to, że emocje były najskuteczniejsze; zbiór powstał z określonych źródeł, w tym części wygenerowanej syntetycznie.','Emotional appeals received the most labels. This does not mean they were the most effective; the corpus used selected sources, including a synthetically generated portion.'))
-    st.text_area(L('Jakie zagrożenia dla uogólnienia wyników widzisz?','What threatens generalization of the findings?'),height=100)
+    _field('sitt_data_limits',L('Jakie zagrożenia dla uogólnienia wyników widzisz?','What threatens generalization of the findings?'),height=100)
 
 elif chosen=='models':
     title('Jak dobrze modele językowe rozpoznawały SITT?','How well did language models detect SITT?')
@@ -162,16 +168,10 @@ elif chosen=='models':
         st.latex(r'Precision=\frac{TP}{TP+FP},\quad Recall=\frac{TP}{TP+FN}')
         st.latex(r'F1=\frac{2\cdot Precision\cdot Recall}{Precision+Recall}')
         st.write(L('Przykład: TP=6, FP=2, FN=4. Precision=6/8=0,75; recall=6/10=0,60; F1≈0,667. To wyłącznie przykład obliczeniowy.','Example: TP=6, FP=2, FN=4. Precision=6/8=.75; recall=6/10=.60; F1≈.667. This is an arithmetic illustration only.'))
-    st.text_area(L('Dlaczego klasyfikacja subtelnych technik może być trudniejsza niż szerokich kategorii?','Why might subtle techniques be harder to identify than broad categories?'),height=110)
+    _field('model_interpretation',L('Dlaczego klasyfikacja subtelnych technik może być trudniejsza niż szerokich kategorii?','Why might subtle techniques be harder to identify than broad categories?'),height=110)
 
 elif chosen=='debate':
-    title('Debaty socjologiczne — więcej interpretacji, mniej testów','Sociological debates — interpretation over quizzes')
-    debates=[('Czy perswazja zawsze jest manipulacją?','Is persuasion always manipulation?','Rozważ jawność celu, możliwość odmowy i prawdziwość argumentów.','Consider transparency, freedom to refuse and truthfulness of claims.'),('Czy odwołanie do autorytetu może być uzasadnione?','Can appealing to authority be justified?','Odróżnij rzetelne dane naukowe od nieuprawnionego wykorzystania prestiżu.','Distinguish credible evidence from unjustified use of prestige.'),('Czy ta sama technika zadziała tak samo w różnych kulturach?','Will the same technique work equally across cultures?','Uwzględnij normy, język, sytuację instytucjonalną i różnice w próbie.','Consider norms, language, institutions and sampling differences.'),('Kiedy społeczny dowód słuszności pomaga, a kiedy stygmatyzuje?','When does social proof help or stigmatize?','Zastanów się, kogo norma uwzględnia, a kogo pomija.','Consider who is included in a norm and who is left out.'),('Czy AI powinno automatycznie oznaczać manipulację?','Should AI automatically flag manipulation?','Przedyskutuj błędy, fałszywe oskarżenia i wolność wypowiedzi.','Discuss errors, false accusations and freedom of expression.'),('Jak przeprowadzić porównanie międzykulturowe?','How could we make a cross-cultural comparison?','Zaproponuj porównywalny schemat kodowy i test zgodności anotatorów.','Propose a comparable codebook and inter-rater agreement testing.')]
-    prompt=st.selectbox(L('Wybierz problem','Choose an issue'),range(len(debates)),format_func=lambda i:debates[i][0] if pl else debates[i][1])
-    d=debates[prompt];st.info(d[2] if pl else d[3])
-    c1,c2=st.columns(2)
-    c1.text_area(L('Argument A','Argument A'),height=170,key='deba');c2.text_area(L('Kontrargument B','Counterargument B'),height=170,key='debb')
-    st.text_area(L('Jakie dane pozwoliłyby rozstrzygnąć spór?','What data would help address the disagreement?'),height=110,key='debc')
+    render_debate(pl)
 
 else:
     title('Zaprojektuj własne badanie porównawcze','Design your own comparative research')
@@ -179,13 +179,17 @@ else:
     theme=st.selectbox(L('Dziedzina','Domain'),[L('Klimat','Climate'),L('Migracje','Migration'),L('AI i edukacja','AI and education')])
     countries=st.multiselect(L('Porównywane kraje (przykład)','Comparison countries (example)'),['Poland','Spain','Germany','France','Lithuania'],default=['Poland','Spain'])
     labels=st.multiselect(L('Kategorie SITT','SITT categories'),[x[0] for x in SITT],format_func=catname,default=['emotions','norms'])
+    _lab_state()['final_countries']=countries
+    _lab_state()['final_labels']=labels
     sample=st.slider(L('Planowana liczba wiadomości na kraj','Planned messages per country'),20,400,100,20)
+    _lab_state()['final_n_per_country']=str(sample)
     st.metric(L('Łączna planowana próba','Total planned sample'),sample*len(countries))
-    st.text_area(L('Pytanie i hipoteza badawcza','Research question and hypothesis'),height=100)
-    st.text_area(L('Reguły kodowania: definicje, przykłady i niejednoznaczności','Coding rules: definitions, examples and ambiguities'),height=105)
-    st.text_area(L('Jak sprawdzisz zgodność kodowania i porównywalność językową?','How will you test coding agreement and language comparability?'),height=100)
+    _field('final_hypothesis',L('Pytanie i hipoteza badawcza','Research question and hypothesis'),height=100)
+    _field('final_codebook',L('Reguły kodowania: definicje, przykłady i niejednoznaczności','Coding rules: definitions, examples and ambiguities'),height=105)
+    _field('final_validation',L('Jak sprawdzisz zgodność kodowania i porównywalność językową?','How will you test coding agreement and language comparability?'),height=100)
     if st.button(L('Pokaż listę kontroli jakości','Show quality checklist')):
         st.info(L('Zapewnij zgodność próbek i jednostek analizy; dwoje niezależnych anotatorów dla części tekstów; wspólny codebook; procedurę rozstrzygania sporów; ostrożne wnioski o intencji i skuteczności.','Ensure comparable sampling and units; two independent annotators for a subset; a shared codebook; disagreement resolution; and cautious claims about intent and effects.'))
 
+render_export(pl)
 st.divider()
 st.caption(L('Podstawa: Mieleszczenko-Kowszewicz i in., „Unraveling SITT” (2025), arXiv:2506.00061. Ćwiczenia i komunikaty są autorskie, z wyjątkiem wyraźnie oznaczonych zagregowanych wyników publikacji. Aplikacja nie przesyła odpowiedzi do zewnętrznego serwera ani ich nie zapisuje.','Source: Mieleszczenko-Kowszewicz et al., “Unraveling SITT” (2025), arXiv:2506.00061. Classroom cases are newly written; only explicitly labeled aggregate findings come from the paper. No answers are submitted or stored.'))
